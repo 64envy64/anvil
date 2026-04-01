@@ -1,6 +1,6 @@
 {
   "name": "@anvil-tools/target-cli-gen",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Anvil target: generates a CLI application from tool definitions",
   "type": "module",
   "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },

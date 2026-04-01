@@ -1,6 +1,6 @@
 {
   "name": "@anvil-tools/target-mcp",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Anvil target: generates a Model Context Protocol (MCP) server from tool definitions",
   "type": "module",
   "exports": {

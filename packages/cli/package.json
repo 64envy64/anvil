@@ -1,6 +1,6 @@
 {
   "name": "@anvil-tools/cli",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "CLI for the Anvil tool compiler",
   "type": "module",
   "bin": {

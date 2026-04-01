@@ -1,6 +1,6 @@
 {
   "name": "@anvil-tools/target-openai",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Anvil target: generates OpenAI function calling tool definitions",
   "type": "module",
   "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },

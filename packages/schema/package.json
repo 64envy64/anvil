@@ -1,6 +1,6 @@
 {
   "name": "@anvil-tools/schema",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Core schema types, parser, and validation for Anvil tool definitions",
   "type": "module",
   "exports": {

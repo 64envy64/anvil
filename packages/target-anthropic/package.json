@@ -1,6 +1,6 @@
 {
   "name": "@anvil-tools/target-anthropic",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Anvil target: generates Claude/Anthropic API native tool definitions",
   "type": "module",
   "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
