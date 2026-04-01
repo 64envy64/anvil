@@ -1,7 +1,7 @@
 /**
  * Registry HTTP Client
  *
- * Communicates with the Anvil registry API (hub.anvil.tools).
+ * Communicates with the Anvil registry API (self-hosted hub).
  * Falls back to local storage for offline/development workflows.
  */
 
@@ -14,7 +14,7 @@ import type {
   RegistryVersion,
 } from './types.js';
 
-const DEFAULT_REGISTRY = 'https://hub.anvil.tools/api/v1';
+const DEFAULT_REGISTRY = 'http://localhost:4400/api/v1';
 
 export interface RegistryClientOptions {
   /** Registry API base URL */

@@ -67,7 +67,7 @@ Publish tool definitions to the registry.
 anvil publish [file] [options]
 
 Options:
-  --registry <url>   Registry URL (default: hub.anvil.tools)
+  --registry <url>   Registry URL (default: localhost:4400)
   --token <token>    Auth token (or set ANVIL_TOKEN)
   --tag <tags...>    Tags for discovery
   --dry-run          Validate without publishing

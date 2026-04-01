@@ -3,7 +3,7 @@ import { Nav } from '@/components/Nav';
 import { Footer } from '@/components/Footer';
 import './globals.css';
 
-const SITE_URL = 'https://anvil.tools';
+const SITE_URL = 'https://anvil-sooty.vercel.app';
 const SITE_NAME = 'Anvil';
 const SITE_DESC = 'The universal tool compiler for AI agents. Define once, compile to MCP servers, SDKs, docs, eval harnesses, and agent-optimized schemas.';
 

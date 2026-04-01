@@ -71,7 +71,7 @@ Put behind Caddy or nginx for HTTPS:
 
 ```
 # Caddyfile
-hub.anvil.tools {
+your-hub-domain.com {
     reverse_proxy localhost:4400
 }
 ```
@@ -81,7 +81,7 @@ hub.anvil.tools {
 ### Publish a Package
 
 ```bash
-curl -X POST https://hub.anvil.tools/api/v1/packages \
+curl -X POST http://localhost:4400/api/v1/packages \
   -H "Authorization: Bearer avt_your_token" \
   -H "Content-Type: application/json" \
   -d '{
@@ -102,42 +102,42 @@ The hub **validates the YAML** on publish:
 
 ```bash
 # Full-text search (name, description, agent descriptions, when_to_use)
-curl "https://hub.anvil.tools/api/v1/search?q=weather"
+curl "http://localhost:4400/api/v1/search?q=weather"
 
 # Filter by tags
-curl "https://hub.anvil.tools/api/v1/search?tags=database,sql"
+curl "http://localhost:4400/api/v1/search?tags=database,sql"
 
 # Sort options: downloads, updated, created, name, featured
-curl "https://hub.anvil.tools/api/v1/search?sort=featured"
+curl "http://localhost:4400/api/v1/search?sort=featured"
 ```
 
 ### Get a Package
 
 ```bash
-curl https://hub.anvil.tools/api/v1/packages/weather-tools
+curl http://localhost:4400/api/v1/packages/weather-tools
 ```
 
 ### Download Definition (YAML)
 
 ```bash
 # Latest version
-curl https://hub.anvil.tools/api/v1/packages/weather-tools/definition
+curl http://localhost:4400/api/v1/packages/weather-tools/definition
 
 # Specific version
-curl https://hub.anvil.tools/api/v1/packages/weather-tools/versions/1.0.0/definition
+curl http://localhost:4400/api/v1/packages/weather-tools/versions/1.0.0/definition
 ```
 
 ### Featured/Trending
 
 ```bash
-curl https://hub.anvil.tools/api/v1/featured
+curl http://localhost:4400/api/v1/featured
 ```
 
 ### Create User Tokens
 
 ```bash
 # Admin only — creates a publish token
-curl -X POST https://hub.anvil.tools/api/v1/tokens \
+curl -X POST http://localhost:4400/api/v1/tokens \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"owner": "alice", "scopes": "publish"}'
@@ -167,7 +167,7 @@ Or simply copy the file when the server is stopped.
 
 ```bash
 # Save token locally
-anvil login --token avt_your_token --registry https://hub.anvil.tools/api/v1
+anvil login --token avt_your_token --registry http://localhost:4400/api/v1
 
 # Publish (reads saved token)
 anvil publish tools.anvil.yaml

@@ -3,7 +3,7 @@ import { getPosts } from '@/lib/content';
 
 export const dynamic = 'force-static';
 
-const BASE = 'https://anvil.tools';
+const BASE = 'https://anvil-sooty.vercel.app';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const docs = getPosts('docs').map(p => ({

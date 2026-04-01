@@ -1,7 +1,7 @@
 /**
  * Registry API Types
  *
- * Defines the contract for the Anvil tool registry (hub.anvil.tools).
+ * Defines the contract for the Anvil tool registry (self-hosted hub).
  * Both the hosted registry and local file-based store implement this interface.
  */
 

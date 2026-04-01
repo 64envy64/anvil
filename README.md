@@ -9,7 +9,7 @@
   <a href="https://www.npmjs.com/package/@anvil-tools/cli"><img alt="npm" src="https://img.shields.io/npm/v/@anvil-tools/cli?style=flat&color=D97706&label=npm"></a>
   <a href="https://github.com/64envy64/anvil/actions"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/64envy64/anvil/ci.yml?style=flat&label=CI"></a>
   <a href="https://github.com/64envy64/anvil/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache%202.0-blue?style=flat"></a>
-  <a href="https://anvil.tools"><img alt="Website" src="https://img.shields.io/badge/docs-anvil.tools-D97706?style=flat"></a>
+  <a href="https://anvil-sooty.vercel.app"><img alt="Website" src="https://img.shields.io/badge/docs-anvil--sooty.vercel.app-D97706?style=flat"></a>
 </p>
 
 <p align="center">
@@ -144,19 +144,20 @@ anvil compile   # → MCP server, OpenAPI spec, TypeScript SDK, docs, eval tests
 
 ## Registry
 
-Publish and install tool definitions:
+Anvil includes a self-hosted registry. Start it locally or deploy to any server:
 
 ```bash
-anvil login --token <token> --registry https://hub.anvil.tools/api/v1
+# Start the registry (seeds with example packages)
+cd packages/hub && SEED=true npm run dev
+```
+
+Then publish, search, and install:
+
+```bash
+anvil login --token <token> --registry http://localhost:4400/api/v1
 anvil publish tools.anvil.yaml
 anvil search "github"
 anvil install github-tools
-```
-
-Self-host the registry with a single command:
-
-```bash
-cd packages/hub && SEED=true npm run dev
 ```
 
 ## Runtime Middleware

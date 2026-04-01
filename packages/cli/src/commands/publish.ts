@@ -21,7 +21,7 @@ export function registerPublishCommand(program: Command): void {
     .command('publish')
     .description('Publish tool definitions to the Anvil registry')
     .argument('[file]', 'Path to .anvil.yaml file', 'tools.anvil.yaml')
-    .option('--registry <url>', 'Registry URL', 'https://hub.anvil.tools/api/v1')
+    .option('--registry <url>', 'Registry URL', 'http://localhost:4400/api/v1')
     .option('--token <token>', 'Auth token (or set ANVIL_TOKEN)')
     .option('--tag <tags...>', 'Tags for discovery')
     .option('--dry-run', 'Validate without publishing')
@@ -76,7 +76,7 @@ export function registerPublishCommand(program: Command): void {
       } else {
         const saved = await loadSavedConfig();
         const token = opts.token ?? process.env['ANVIL_TOKEN'] ?? saved.token;
-        const registry = opts.registry !== 'https://hub.anvil.tools/api/v1'
+        const registry = opts.registry !== 'http://localhost:4400/api/v1'
           ? opts.registry
           : saved.registry ?? opts.registry;
 
@@ -99,7 +99,7 @@ export function registerPublishCommand(program: Command): void {
           }, token);
 
           console.log(chalk.green(`\n  Published ${pkg.name}@${pkg.version}`));
-          console.log(chalk.dim(`  https://hub.anvil.tools/packages/${pkg.name}\n`));
+          console.log(chalk.dim(`  http://localhost:4400/api/v1/packages/${pkg.name}\n`));
         } catch (err) {
           console.log(chalk.red(`\n  Publish failed: ${err instanceof Error ? err.message : err}\n`));
           process.exit(1);
@@ -113,7 +113,7 @@ export function registerPublishCommand(program: Command): void {
     .command('search')
     .description('Search the Anvil registry for tool definitions')
     .argument('<query>', 'Search query')
-    .option('--registry <url>', 'Registry URL', 'https://hub.anvil.tools/api/v1')
+    .option('--registry <url>', 'Registry URL', 'http://localhost:4400/api/v1')
     .option('--tag <tags...>', 'Filter by tags')
     .option('--local', 'Search local registry only')
     .action(async (query: string, opts: {

@@ -39,7 +39,7 @@ export function registerInstallCommand(program: Command): void {
     .option('--compile', 'Compile immediately after installing')
     .action(async (pkgArg: string, opts: { registry?: string; output?: string; compile?: boolean }) => {
       const config = await loadCliConfig();
-      const registryUrl = (opts.registry ?? config.registry ?? 'https://hub.anvil.tools/api/v1').replace(/\/$/, '');
+      const registryUrl = (opts.registry ?? config.registry ?? 'http://localhost:4400/api/v1').replace(/\/$/, '');
 
       // Parse package@version
       const atIndex = pkgArg.lastIndexOf('@');
@@ -162,7 +162,7 @@ export function registerInstallCommand(program: Command): void {
       console.log();
 
       // Verify token works
-      const registryUrl = (config.registry ?? 'https://hub.anvil.tools/api/v1').replace(/\/$/, '');
+      const registryUrl = (config.registry ?? 'http://localhost:4400/api/v1').replace(/\/$/, '');
       try {
         const res = await fetch(`${registryUrl}/stats`);
         if (res.ok) {
