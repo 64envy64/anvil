@@ -46,6 +46,10 @@ anvil compile --target mcp            # generate MCP server
 anvil serve --stub tools.anvil.yaml   # or run directly as MCP
 ```
 
+<p align="center">
+  <img alt="anvil serve" src="website/public/demo-serve.svg" width="640">
+</p>
+
 Use in Claude Desktop — zero codegen needed:
 
 ```json
@@ -116,11 +120,9 @@ tools:
 
 No config file needed. Targets are built into the CLI:
 
-```bash
-anvil compile --target mcp                    # just MCP
-anvil compile --target mcp,docs,anthropic     # pick targets
-anvil compile --all                           # all 10 targets
-```
+<p align="center">
+  <img alt="anvil compile" src="website/public/demo-compile.svg" width="640">
+</p>
 
 | Target | Package | What it generates |
 |--------|---------|-------------------|

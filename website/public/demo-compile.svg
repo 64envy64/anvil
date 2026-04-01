@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" fill="none">
+  <rect width="720" height="360" rx="10" fill="#09090B"/>
+  <rect x="0.5" y="0.5" width="719" height="359" rx="9.5" stroke="#1E1E22"/>
+
+  <!-- Window chrome -->
+  <circle cx="20" cy="18" r="5" fill="#27272B"/>
+  <circle cx="36" cy="18" r="5" fill="#27272B"/>
+  <circle cx="52" cy="18" r="5" fill="#27272B"/>
+  <text x="360" y="22" text-anchor="middle" font-family="monospace" font-size="11" fill="#5C5A56">Terminal</text>
+  <line x1="0" y1="34" x2="720" y2="34" stroke="#1E1E22"/>
+
+  <!-- Command -->
+  <text font-family="monospace" font-size="13" fill="#9E9B97">
+    <tspan x="20" y="60" fill="#5C5A56">$</tspan>
+    <tspan dx="8" fill="#EDEAE6">anvil compile --target mcp,docs,anthropic</tspan>
+  </text>
+
+  <!-- Output -->
+  <text font-family="monospace" font-size="12" fill="#9E9B97">
+    <tspan x="20" y="90" fill="#EDEAE6" font-weight="bold">  Compiling 1 file → 3 targets (mcp, docs, anthropic)</tspan>
+
+    <tspan x="20" y="120" fill="#9ECE6A">  +</tspan><tspan dx="4" fill="#5C5A56">out/mcp/server.ts</tspan>
+    <tspan x="20" y="138" fill="#9ECE6A">  +</tspan><tspan dx="4" fill="#5C5A56">out/mcp/handlers.ts</tspan>
+    <tspan x="20" y="156" fill="#9ECE6A">  +</tspan><tspan dx="4" fill="#5C5A56">out/mcp/types.ts</tspan>
+    <tspan x="20" y="174" fill="#9ECE6A">  +</tspan><tspan dx="4" fill="#5C5A56">out/mcp/env.ts</tspan>
+    <tspan x="20" y="192" fill="#9ECE6A">  +</tspan><tspan dx="4" fill="#5C5A56">out/mcp/GUIDE.md</tspan>
+    <tspan x="20" y="210" fill="#9ECE6A">  +</tspan><tspan dx="4" fill="#5C5A56">out/mcp/package.json</tspan>
+    <tspan x="20" y="228" fill="#9ECE6A">  +</tspan><tspan dx="4" fill="#5C5A56">out/mcp/tsconfig.json</tspan>
+    <tspan x="20" y="246" fill="#9ECE6A">  +</tspan><tspan dx="4" fill="#5C5A56">out/docs/README.md</tspan>
+    <tspan x="20" y="264" fill="#9ECE6A">  +</tspan><tspan dx="4" fill="#5C5A56">out/anthropic/tools.json</tspan>
+    <tspan x="20" y="282" fill="#9ECE6A">  +</tspan><tspan dx="4" fill="#5C5A56">out/anthropic/tools.ts</tspan>
+
+    <tspan x="20" y="312" fill="#9ECE6A">  10 files generated in out/</tspan>
+  </text>
+
+  <!-- Accent line -->
+  <rect x="16" y="86" width="3" height="16" rx="1" fill="#D97706"/>
+</svg>
