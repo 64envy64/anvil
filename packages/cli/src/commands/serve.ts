@@ -1,34 +1,53 @@
 /**
- * `anvil serve` — start a local MCP server for testing.
+ * `anvil serve` — start a production MCP server directly from .anvil.yaml files.
  *
- * Reads tool definitions, compiles to MCP format, and serves over stdio or HTTP.
+ * Uses the real @modelcontextprotocol/sdk. Works with Claude Desktop, Cursor,
+ * Claude Code, and any MCP client. Zero codegen needed — YAML to running server.
+ *
+ * Usage in Claude Desktop config:
+ *   {
+ *     "mcpServers": {
+ *       "my-tools": {
+ *         "command": "npx",
+ *         "args": ["@anvil-tools/cli", "serve", "./tools.anvil.yaml"]
+ *       }
+ *     }
+ *   }
  */
 
 import { readFile } from 'node:fs/promises';
-import { resolve, dirname } from 'node:path';
+import { resolve } from 'node:path';
 import { glob } from 'glob';
 import chalk from 'chalk';
-import { parseAnvilYaml, mergeAnvilDefinitions, lowerToIR, type AnvilIR } from '@anvil-tools/schema';
+import {
+  parseAnvilYaml,
+  mergeAnvilDefinitions,
+  lowerToIR,
+  toolParametersToJsonSchema,
+  type AnvilIR,
+  type AnvilIRTool,
+} from '@anvil-tools/schema';
 import type { Command } from 'commander';
 
 export function registerServeCommand(program: Command): void {
   program
     .command('serve')
-    .description('Start a local MCP server for testing tool definitions')
+    .description('Start an MCP server from .anvil.yaml files (works with Claude Desktop, Cursor, Claude Code)')
     .argument('[patterns...]', 'Glob patterns for .anvil.yaml files', ['**/*.anvil.yaml'])
-    .option('-p, --port <port>', 'HTTP port (uses stdio by default)')
-    .option('--stub', 'Return example data instead of errors for unimplemented tools')
-    .action(async (patterns: string[], opts: { port?: string; stub?: boolean }) => {
+    .option('--stub', 'Return example data for all tools (great for testing)')
+    .option('--handler <file>', 'JavaScript/TypeScript file exporting handler functions')
+    .action(async (patterns: string[], opts: { stub?: boolean; handler?: string }) => {
       const files = (await Promise.all(
         patterns.map(p => glob(p, { ignore: 'node_modules/**' })),
       )).flat();
 
       if (files.length === 0) {
         console.error(chalk.yellow('No .anvil.yaml files found.'));
+        console.error(chalk.dim('  Run `anvil init` to create a starter definition.'));
         process.exit(1);
       }
 
-      // Parse all files
+      // Parse all definition files
       const parseResults = await Promise.all(
         files.map(async file => {
           const filePath = resolve(file);
@@ -40,171 +59,141 @@ export function registerServeCommand(program: Command): void {
       const merged = mergeAnvilDefinitions(parseResults);
       const ir = lowerToIR(merged.service, files);
 
-      if (opts.port) {
-        await startHttpServer(ir, parseInt(opts.port, 10), !!opts.stub);
-      } else {
-        await startStdioServer(ir, !!opts.stub);
+      // Load custom handlers if provided
+      let customHandlers: Record<string, (args: Record<string, unknown>) => Promise<unknown>> = {};
+      if (opts.handler) {
+        try {
+          const handlerPath = resolve(opts.handler);
+          const mod = await import(handlerPath);
+          customHandlers = mod.default ?? mod;
+          console.error(chalk.dim(`  Loaded handlers from ${opts.handler}`));
+        } catch (err) {
+          console.error(chalk.yellow(`  Warning: could not load handlers from ${opts.handler}`));
+          console.error(chalk.dim(`  ${err instanceof Error ? err.message : err}`));
+        }
       }
+
+      await startMcpServer(ir, !!opts.stub, customHandlers);
     });
 }
 
-async function startStdioServer(ir: AnvilIR, stub: boolean): Promise<void> {
-  // Minimal JSON-RPC over stdio implementation
-  // In production, this would use @modelcontextprotocol/sdk
-  const { createInterface } = await import('node:readline');
+async function startMcpServer(
+  ir: AnvilIR,
+  stub: boolean,
+  handlers: Record<string, (args: Record<string, unknown>) => Promise<unknown>>,
+): Promise<void> {
+  const { Server } = await import('@modelcontextprotocol/sdk/server/index.js');
+  const { StdioServerTransport } = await import('@modelcontextprotocol/sdk/server/stdio.js');
+  const types = await import('@modelcontextprotocol/sdk/types.js');
 
-  const rl = createInterface({ input: process.stdin });
-  const toolList = ir.tools.map(t => ({
-    name: t.name,
-    description: t.agent_description,
-    inputSchema: buildInputSchema(t),
+  const server = new Server(
+    { name: ir.service.name, version: ir.service.version },
+    { capabilities: { tools: {} } },
+  );
+
+  // ─── tools/list ─────────────────────────────────────────────────────────
+
+  server.setRequestHandler(types.ListToolsRequestSchema, async () => ({
+    tools: ir.tools.map(tool => {
+      const inputSchema = toolParametersToJsonSchema(tool);
+
+      // MCP annotations
+      const annotations: Record<string, unknown> = {};
+      if (tool.side_effects === 'none' || tool.side_effects === 'read') {
+        annotations['readOnlyHint'] = true;
+      }
+      if (tool.side_effects === 'destructive') {
+        annotations['destructiveHint'] = true;
+      }
+      if (tool.idempotent) {
+        annotations['idempotentHint'] = true;
+      }
+
+      return {
+        name: tool.name,
+        description: tool.agent_description,
+        inputSchema,
+        annotations,
+      };
+    }),
   }));
 
-  console.error(chalk.cyan(`Anvil MCP server (stdio) — serving ${ir.tools.length} tools`));
+  // ─── tools/call ─────────────────────────────────────────────────────────
 
-  rl.on('line', (line) => {
-    try {
-      const req = JSON.parse(line);
-      let response: unknown;
+  server.setRequestHandler(types.CallToolRequestSchema, async (request) => {
+    const { name, arguments: args } = request.params;
+    const tool = ir.tools.find(t => t.name === name);
 
-      if (req.method === 'initialize') {
-        response = {
-          jsonrpc: '2.0',
-          id: req.id,
-          result: {
-            protocolVersion: '2024-11-05',
-            capabilities: { tools: {} },
-            serverInfo: { name: ir.service.name, version: ir.service.version },
-          },
+    if (!tool) {
+      return {
+        content: [{ type: 'text' as const, text: `Unknown tool: ${name}` }],
+        isError: true,
+      };
+    }
+
+    // 1. Try custom handler first
+    const camelName = name.replace(/_([a-z])/g, (_: string, c: string) => c.toUpperCase());
+    const handler = handlers[name] ?? handlers[camelName];
+
+    if (handler) {
+      try {
+        const result = await handler((args ?? {}) as Record<string, unknown>);
+        return {
+          content: [{ type: 'text' as const, text: typeof result === 'string' ? result : JSON.stringify(result, null, 2) }],
         };
-      } else if (req.method === 'tools/list') {
-        response = {
-          jsonrpc: '2.0',
-          id: req.id,
-          result: { tools: toolList },
-        };
-      } else if (req.method === 'tools/call') {
-        const toolName = req.params?.name;
-        const tool = ir.tools.find(t => t.name === toolName);
-        if (!tool) {
-          response = {
-            jsonrpc: '2.0',
-            id: req.id,
-            error: { code: -32602, message: `Unknown tool: ${toolName}` },
-          };
-        } else if (stub && tool.examples.length > 0) {
-          response = {
-            jsonrpc: '2.0',
-            id: req.id,
-            result: {
-              content: [{
-                type: 'text',
-                text: JSON.stringify(tool.examples[0]!.output ?? { stub: true }),
-              }],
-            },
-          };
-        } else {
-          response = {
-            jsonrpc: '2.0',
-            id: req.id,
-            result: {
-              content: [{
-                type: 'text',
-                text: JSON.stringify({ error: 'Not implemented — use --stub for example data' }),
-              }],
-              isError: true,
-            },
-          };
-        }
-      } else if (req.method === 'notifications/initialized') {
-        return; // No response needed for notifications
-      } else {
-        response = {
-          jsonrpc: '2.0',
-          id: req.id,
-          error: { code: -32601, message: `Method not found: ${req.method}` },
+      } catch (err) {
+        return {
+          content: [{ type: 'text' as const, text: `Error in ${name}: ${err instanceof Error ? err.message : err}` }],
+          isError: true,
         };
       }
-
-      if (response) {
-        process.stdout.write(JSON.stringify(response) + '\n');
-      }
-    } catch {
-      // Ignore malformed input
-    }
-  });
-}
-
-async function startHttpServer(ir: AnvilIR, port: number, stub: boolean): Promise<void> {
-  const { createServer } = await import('node:http');
-
-  const toolMap = new Map(ir.tools.map(t => [t.name, t]));
-
-  const server = createServer(async (req, res) => {
-    // CORS
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-    if (req.method === 'OPTIONS') {
-      res.writeHead(204);
-      res.end();
-      return;
     }
 
-    if (req.method === 'GET' && req.url === '/tools') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        tools: ir.tools.map(t => ({
-          name: t.name,
-          description: t.agent_description,
-          inputSchema: buildInputSchema(t),
-        })),
-      }));
-      return;
+    // 2. Stub mode — return example data
+    if (stub && tool.examples.length > 0) {
+      const example = tool.examples[0]!;
+      const output = example.output ?? { tool: name, args, stub: true };
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify(output, null, 2) }],
+      };
     }
 
-    if (req.method === 'POST' && req.url?.startsWith('/tools/')) {
-      const toolName = req.url.slice('/tools/'.length);
-      const tool = toolMap.get(toolName);
-
-      if (!tool) {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: `Unknown tool: ${toolName}` }));
-        return;
-      }
-
-      if (stub && tool.examples.length > 0) {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(tool.examples[0]!.output ?? { stub: true }));
-      } else {
-        res.writeHead(501, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Not implemented' }));
-      }
-      return;
-    }
-
-    res.writeHead(404);
-    res.end('Not found');
+    // 3. No handler, no stub — return helpful error
+    return {
+      content: [{
+        type: 'text' as const,
+        text: JSON.stringify({
+          error: `Tool "${name}" has no handler implementation.`,
+          hint: stub
+            ? 'This tool has no examples to stub. Add examples to your .anvil.yaml.'
+            : 'Use --stub to return example data, or --handler <file> to provide implementations.',
+        }, null, 2),
+      }],
+      isError: true,
+    };
   });
 
-  server.listen(port, () => {
-    console.log(chalk.cyan(`\nAnvil MCP server (HTTP) — serving ${ir.tools.length} tools`));
-    console.log(chalk.dim(`  http://localhost:${port}/tools`));
-    console.log(chalk.dim(`  POST http://localhost:${port}/tools/<name>\n`));
-  });
-}
+  // ─── Error handling ─────────────────────────────────────────────────────
 
-function buildInputSchema(tool: { parameters: Array<{ name: string; field: { description?: string }; required: boolean }> }): Record<string, unknown> {
-  const properties: Record<string, unknown> = {};
-  const required: string[] = [];
-  for (const p of tool.parameters) {
-    properties[p.name] = { type: 'string', description: p.field.description ?? '' };
-    if (p.required) required.push(p.name);
-  }
-  return {
-    type: 'object',
-    properties,
-    ...(required.length > 0 ? { required } : {}),
+  server.onerror = (error) => {
+    console.error(chalk.red(`[anvil serve] Error: ${error.message}`));
   };
+
+  process.on('SIGINT', async () => {
+    await server.close();
+    process.exit(0);
+  });
+
+  // ─── Start ──────────────────────────────────────────────────────────────
+
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+
+  console.error(chalk.cyan(`\n  anvil serve — ${ir.service.name} v${ir.service.version}`));
+  console.error(chalk.dim(`  ${ir.tools.length} tools: ${ir.tools.map(t => t.name).join(', ')}`));
+  if (stub) {
+    console.error(chalk.dim('  Mode: stub (returning example data)'));
+  }
+  console.error(chalk.dim('  Transport: stdio'));
+  console.error(chalk.dim('  Ready for MCP client connections.\n'));
 }
