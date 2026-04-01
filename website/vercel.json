@@ -1,6 +1,10 @@
 {
-    "buildCommand": "pnpm install && pnpm build",
+    "version": 2,
+    "buildCommand": "pnpm build",
     "installCommand": "pnpm install --filter anvil-website...",
     "outputDirectory": ".next",
-    "framework": "nextjs"
+    "framework": "nextjs",
+    "env": {
+      "NODE_VERSION": "20"
+    }
   }
